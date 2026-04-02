@@ -69,7 +69,7 @@
         domain: 'dev-xhjalqsnpm7p7gm5.us.auth0.com',
         clientId: 'YFqbwQW2Aga5wUeqy4pqwla0J06Iz8Xt',
         authorizationParams: {
-          redirect_uri: window.location.origin + window.location.pathname,
+          redirect_uri: 'https://anuba-technologies.github.io/auth0-spa-test',
           prompt: 'login'
         },
         cacheLocation: 'memory'
@@ -113,7 +113,7 @@
     async function doLogout() {
       await auth0Client.logout({
         logoutParams: {
-          returnTo: window.location.origin
+          returnTo: 'https://anuba-technologies.github.io/auth0-spa-test'
         }
       });
     }
