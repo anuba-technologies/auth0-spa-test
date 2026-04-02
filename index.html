@@ -101,10 +101,16 @@
     }
 
     async function loginWith(connection) {
-      showStatus('Redirecting to ' + connection + '...');
-      var params = { connection: connection };
-      // Passwordless email doesn't support prompt=login — it shows its own email input
-      if (connection !== 'email') params.prompt = 'login';
+      showStatus('Redirecting to ' + (connection || 'email login') + '...');
+      var params = {};
+      if (connection === 'email') {
+        // Passwordless: don't pass connection param — let Auth0 Universal Login
+        // show its own email input form. Database connection is disabled so
+        // Auth0 will use the passwordless email connection.
+      } else {
+        params.connection = connection;
+        params.prompt = 'login';
+      }
       await auth0Client.loginWithRedirect({ authorizationParams: params });
     }
 
