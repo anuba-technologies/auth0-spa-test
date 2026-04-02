@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth0 SPA SDK Test — Anuba Investor Portal</title>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, -apple-system, sans-serif; background: #1a1a2e; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #fff; color: #1a1a2e; border-radius: 16px; padding: 40px; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .logo { text-align: center; margin-bottom: 24px; }
+    .logo svg { width: 48px; height: 48px; }
+    h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
+    .subtitle { font-size: 13px; color: #64748b; text-align: center; margin-bottom: 24px; }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: #fff; color: #1a1a2e; transition: all 0.2s; margin-bottom: 10px; font-family: inherit; }
+    .btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .btn-linkedin { border-color: #0a66c2; color: #0a66c2; }
+    .btn-email { border-color: #6b7280; color: #6b7280; }
+    .btn-google { border-color: #4285f4; color: #4285f4; }
+    .btn-microsoft { border-color: #0078d4; color: #0078d4; }
+    .btn-logout { background: #fee2e2; border-color: #fca5a5; color: #dc2626; margin-top: 16px; }
+    .status { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin-top: 20px; font-size: 13px; }
+    .status.error { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .badge { display: inline-block; background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-bottom: 16px; text-align: center; width: 100%; }
+    #login-section, #profile-section { display: none; }
+    #user-name { font-weight: 700; font-size: 16px; }
+    #user-email { font-size: 13px; color: #64748b; }
+    #user-provider { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F54927"/><stop offset="100%" stop-color="#F87C63"/></linearGradient></defs>
+        <rect width="48" height="48" rx="12" fill="url(#lg)"/>
+        <path d="M24 12L33 40H29L26 31H22L19 40H15L24 12Z" fill="white"/>
+      </svg>
+    </div>
+    <div class="badge">Auth0 SPA SDK Test — CLAW-39</div>
+    <h1>Anuba Investor Portal</h1>
+    <p class="subtitle">Testing direct Auth0 authentication (no Azure SWA proxy)</p>
+
+    <div id="login-section">
+      <button class="btn btn-microsoft" onclick="loginWith('aad')">Continue with Microsoft</button>
+      <button class="btn btn-google" onclick="loginWith('google-oauth2')">Continue with Google</button>
+      <button class="btn btn-linkedin" onclick="loginWith('linkedin')">Continue with LinkedIn</button>
+      <button class="btn btn-email" onclick="loginWith('email')">Continue with Email</button>
+    </div>
+
+    <div id="profile-section">
+      <div class="status">
+        <div id="user-name"></div>
+        <div id="user-email"></div>
+        <div id="user-provider"></div>
+      </div>
+      <button class="btn btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+
+    <div id="status-msg" class="status" style="display:none;"></div>
+  </div>
+
+  <script>
+    let auth0Client = null;
+
+    async function init() {
+      auth0Client = await auth0.createAuth0Client({
+        domain: 'dev-xhjalqsnpm7p7gm5.us.auth0.com',
+        clientId: 'YFqbwQW2Aga5wUeqy4pqwla0J06Iz8Xt',
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          prompt: 'login'
+        },
+        cacheLocation: 'memory'
+      });
+
+      if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
+        try {
+          await auth0Client.handleRedirectCallback();
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {
+          showStatus('Auth error: ' + e.message, true);
+        }
+      }
+
+      await updateUI();
+    }
+
+    async function updateUI() {
+      var isAuth = await auth0Client.isAuthenticated();
+      document.getElementById('login-section').style.display = isAuth ? 'none' : 'block';
+      document.getElementById('profile-section').style.display = isAuth ? 'block' : 'none';
+
+      if (isAuth) {
+        var user = await auth0Client.getUser();
+        document.getElementById('user-name').textContent = user.name || user.email || 'Authenticated';
+        document.getElementById('user-email').textContent = user.email || '';
+        document.getElementById('user-provider').textContent = 'Provider: ' + (user.sub || '').split('|')[0];
+      }
+    }
+
+    async function loginWith(connection) {
+      showStatus('Redirecting to ' + connection + '...');
+      await auth0Client.loginWithRedirect({
+        authorizationParams: {
+          connection: connection,
+          prompt: 'login'
+        }
+      });
+    }
+
+    async function doLogout() {
+      await auth0Client.logout({
+        logoutParams: {
+          returnTo: window.location.origin
+        }
+      });
+    }
+
+    function showStatus(msg, isError) {
+      var el = document.getElementById('status-msg');
+      el.className = 'status' + (isError ? ' error' : '');
+      el.textContent = msg;
+      el.style.display = 'block';
+      if (!isError) setTimeout(function() { el.style.display = 'none'; }, 3000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
